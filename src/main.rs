@@ -2,7 +2,7 @@ use clap::Parser;
 use roaring::{MultiOps, RoaringBitmap};
 use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashMap, HashSet};
-use std::iter::zip;
+use std::iter::{successors, zip};
 use std::path::{Path, PathBuf};
 
 #[derive(Parser)]
@@ -88,13 +88,8 @@ struct Neighbours {
 }
 
 impl Neighbours {
-    fn reconstruct_path(&self, came_from: HashMap<u32, u32>, mut current: u32) -> Vec<u32> {
-        let mut total_path = vec![current];
-        while let Some(&next) = came_from.get(&current) {
-            total_path.push(next);
-            current = next;
-        }
-        total_path
+    fn reconstruct_rev_path(&self, came_from: HashMap<u32, u32>, current: u32) -> Vec<u32> {
+        successors(Some(current), |current| came_from.get(current).copied()).collect()
     }
 
     /// A* finds a path from start to goal.
@@ -127,7 +122,7 @@ impl Neighbours {
 
         while let Some(&(_, _, current)) = open_set.peek() {
             if current == goal {
-                return Ok(self.reconstruct_path(came_from, current));
+                return Ok(self.reconstruct_rev_path(came_from, current));
             }
             // This operation can occur in O(Log(N)) time if openSet is a min-heap or a priority
             // queue
@@ -174,13 +169,10 @@ impl Neighbours {
 
 impl From<&Dict> for Neighbours {
     fn from(dict: &Dict) -> Self {
-        let mut bitmaps = vec![];
+        let mut bitmaps = vec![HashMap::with_capacity(32); dict.word_len];
         for (wi, word) in dict.words.iter().enumerate() {
             let wi = wi as u32;
             for (ci, ch) in word.chars().enumerate() {
-                if ci >= bitmaps.len() {
-                    bitmaps.resize_with(ci + 1, || HashMap::with_capacity(32));
-                }
                 bitmaps[ci]
                     .entry(ch)
                     .or_insert_with(RoaringBitmap::new)
@@ -203,7 +195,7 @@ impl From<&Dict> for Neighbours {
                 if let Some(exclude) = bitmaps[exclude_ci].get(&chars[exclude_ci]) {
                     neighbours -= exclude;
                 }
-                for neighbour in neighbours.iter() {
+                for neighbour in neighbours {
                     edges
                         .entry(wi)
                         .or_insert_with(HashSet::new)
@@ -264,9 +256,9 @@ fn main() {
     for word in neighbours
         .a_star(&dict, begin_i, end_i)
         .unwrap()
-        .iter()
+        .into_iter()
         .rev()
-        .map(|&i| &dict.words[i as usize][..])
+        .map(|i| &dict.words[i as usize][..])
     {
         print!("{word} ");
     }
@@ -286,9 +278,9 @@ mod tests {
         let way: Vec<_> = neighbours
             .a_star(&dict, index.index["рожа"], index.index["учет"])
             .unwrap()
-            .iter()
+            .into_iter()
             .rev()
-            .map(|&i| &dict.words[i as usize][..])
+            .map(|i| &dict.words[i as usize][..])
             .collect();
         assert_eq!(
             way,
