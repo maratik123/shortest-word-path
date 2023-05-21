@@ -98,14 +98,8 @@ impl Neighbours {
     }
 
     /// A* finds a path from start to goal.
-    fn a_star(
-        &self,
-        dict: &Dict,
-        start: u32,
-        goal: u32,
-        end: impl AsRef<str>,
-    ) -> Result<Vec<u32>, String> {
-        let end = end.as_ref();
+    fn a_star(&self, dict: &Dict, start: u32, goal: u32) -> Result<Vec<u32>, String> {
+        let end = dict.words[goal as usize].as_str();
 
         // The set of discovered nodes that may need to be (re-)expanded.
         // Initially, only the start node is known.
@@ -262,7 +256,7 @@ fn main() {
         .unwrap();
 
     for word in neighbours
-        .a_star(&dict, begin_i, end_i, end)
+        .a_star(&dict, begin_i, end_i)
         .unwrap()
         .iter()
         .rev()
@@ -284,7 +278,7 @@ mod tests {
         let neighbours = Neighbours::from(&dict);
 
         let way: Vec<_> = neighbours
-            .a_star(&dict, index.index["рожа"], index.index["учет"], "учет")
+            .a_star(&dict, index.index["рожа"], index.index["учет"])
             .unwrap()
             .iter()
             .rev()
