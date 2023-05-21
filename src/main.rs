@@ -194,16 +194,16 @@ impl From<&Dict> for Neighbours {
             let wi = wi as u32;
             let chars: Vec<_> = word.chars().collect();
             for exclude_ci in 0..chars.len() {
-                for neighbour in chars
+                for neighbour in (chars
                     .iter()
                     .enumerate()
                     .filter(|(ci, _)| ci != &exclude_ci)
                     .map(|(ci, ch)| bitmaps[ci].get(ch).unwrap_or(&empty_bitmap))
                     .intersection()
-                    .iter()
-                    .filter(|&neighbour| {
-                        neighbour != wi && dict.words[neighbour as usize] != dict.words[wi as usize]
-                    })
+                    - bitmaps[exclude_ci]
+                        .get(&chars[exclude_ci])
+                        .unwrap_or(&empty_bitmap))
+                .iter()
                 {
                     edges
                         .entry(wi)
