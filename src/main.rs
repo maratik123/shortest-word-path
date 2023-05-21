@@ -107,7 +107,11 @@ impl Neighbours {
         let mut open_set = BinaryHeap::new();
         // Sorting by our current best guess as to how cheap a path could be from start to finish
         // if it goes through n.
-        open_set.push((Reverse(dict.heuristic(end, start)), start));
+        open_set.push((
+            Reverse(dict.heuristic(end, start)),
+            &dict.words[start as usize][..],
+            start,
+        ));
 
         // Backing min-heap with hash-map due to min-heap can not find element in O(1)
         let mut open_set_hash = HashSet::new();
@@ -121,7 +125,7 @@ impl Neighbours {
         let mut g_score = HashMap::new();
         g_score.insert(start, 0);
 
-        while let Some(&(_, current)) = open_set.peek() {
+        while let Some(&(_, _, current)) = open_set.peek() {
             if current == goal {
                 return Ok(self.reconstruct_path(came_from, current));
             }
@@ -154,6 +158,7 @@ impl Neighbours {
                             // through n.
                             open_set.push((
                                 Reverse(tentative_g_score + dict.heuristic(end, neighbour)),
+                                &dict.words[neighbour as usize][..],
                                 neighbour,
                             ));
                         }
