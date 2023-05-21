@@ -1,4 +1,3 @@
-use std::iter::zip;
 use std::ops::Index;
 use std::path::Path;
 use std::slice::Iter;
@@ -17,12 +16,6 @@ impl Dict {
     #[inline]
     pub fn iter(&self) -> Iter<'_, String> {
         self.words.iter()
-    }
-
-    pub fn heuristic(&self, end: impl AsRef<str>, n: u32) -> usize {
-        zip(end.as_ref().chars(), self[n].chars())
-            .filter(|(ch1, ch2)| ch1 != ch2)
-            .count()
     }
 
     #[inline]
