@@ -2,7 +2,8 @@
 name = "dict"
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.69.0"
 
 [dependencies]
-clap = { version = "4", features = [ "derive" ] }
-roaring = "0.10"
+clap.workspace = true
+roaring.workspace = true

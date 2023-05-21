@@ -7,3 +7,7 @@ members = [
 [profile.release-lto]
 inherits = "release"
 lto = true
+
+[workspace.dependencies]
+clap = { version = "4", features = [ "derive" ] }
+roaring = "0.10"
