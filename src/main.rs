@@ -183,14 +183,14 @@ impl From<&Dict> for Neighbours {
         for (wi, word) in dict.words.iter().enumerate() {
             let wi = wi as u32;
             let chars: Vec<_> = word.chars().collect();
-            for exclude_ci in 0..chars.len() {
+            for (exclude_ci, exclude_ch) in chars.iter().enumerate() {
                 let mut neighbours = chars
                     .iter()
                     .enumerate()
                     .filter(|(ci, _)| ci != &exclude_ci)
                     .map(|(ci, ch)| bitmaps[ci].get(ch).unwrap_or(&empty_bitmap))
                     .intersection();
-                if let Some(exclude) = bitmaps[exclude_ci].get(&chars[exclude_ci]) {
+                if let Some(exclude) = bitmaps[exclude_ci].get(exclude_ch) {
                     neighbours -= exclude;
                 }
                 for neighbour in neighbours {
