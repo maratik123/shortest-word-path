@@ -7,15 +7,16 @@ pub struct Neighbours {
 }
 
 impl Neighbours {
-    pub fn edges(&self) -> &HashMap<u32, HashSet<u32>> {
-        &self.edges
+    #[inline]
+    pub fn get(&self, key: u32) -> Option<&HashSet<u32>> {
+        self.edges.get(&key)
     }
 }
 
 impl From<&Dict> for Neighbours {
     fn from(dict: &Dict) -> Self {
         let mut bitmaps = vec![HashMap::with_capacity(32); dict.word_len()];
-        for (wi, word) in dict.words().iter().enumerate() {
+        for (wi, word) in dict.iter().enumerate() {
             let wi = wi as u32;
             for (ci, ch) in word.chars().enumerate() {
                 bitmaps[ci]
@@ -27,7 +28,7 @@ impl From<&Dict> for Neighbours {
 
         let empty_bitmap = RoaringBitmap::new();
         let mut edges = HashMap::new();
-        for (wi, word) in dict.words().iter().enumerate() {
+        for (wi, word) in dict.iter().enumerate() {
             let wi = wi as u32;
             let chars: Vec<_> = word.chars().collect();
             for (exclude_ci, exclude_ch) in chars.iter().enumerate() {

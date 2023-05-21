@@ -32,10 +32,10 @@ fn main() {
     let neighbours = Neighbours::from(&dict);
 
     if begin.is_none() && end.is_none() {
-        for (wi, word) in dict.words().iter().enumerate() {
+        for (wi, word) in dict.iter().enumerate() {
             let wi = wi as u32;
             print!("{word}: ");
-            if let Some(neighbours_i) = neighbours.edges().get(&wi) {
+            if let Some(neighbours_i) = neighbours.get(wi) {
                 for &neighbour_i in neighbours_i {
                     print!("{} ", &dict[neighbour_i]);
                 }
@@ -49,13 +49,11 @@ fn main() {
         begin.expect("Begin word not defined"),
         end.expect("End word not defined"),
     );
-    let &begin_i = index
-        .index()
+    let begin_i = index
         .get(&begin[..])
         .ok_or_else(|| format!("Can not found begin word: {begin}"))
         .unwrap();
-    let &end_i = index
-        .index()
+    let end_i = index
         .get(&end[..])
         .ok_or_else(|| format!("Can not found end word: {end}"))
         .unwrap();

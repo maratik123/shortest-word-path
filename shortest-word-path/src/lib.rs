@@ -41,8 +41,7 @@ pub fn a_star(
         open_set.pop();
         open_set_hash.remove(&current);
         for &neighbour in neighbours
-            .edges()
-            .get(&current)
+            .get(current)
             .iter()
             .flat_map(|neighbours| neighbours.iter())
         {
@@ -86,17 +85,12 @@ mod tests {
         let index = Index::from(&dict);
         let neighbours = Neighbours::from(&dict);
 
-        let way: Vec<_> = super::a_star(
-            &neighbours,
-            &dict,
-            index.index()["рожа"],
-            index.index()["учет"],
-        )
-        .unwrap()
-        .into_iter()
-        .rev()
-        .map(|i| &dict[i])
-        .collect();
+        let way: Vec<_> = super::a_star(&neighbours, &dict, index["рожа"], index["учет"])
+            .unwrap()
+            .into_iter()
+            .rev()
+            .map(|i| &dict[i])
+            .collect();
         assert_eq!(
             way,
             [

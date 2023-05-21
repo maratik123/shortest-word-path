@@ -6,8 +6,18 @@ pub struct Index<'a> {
 }
 
 impl<'a> Index<'a> {
-    pub fn index(&self) -> &HashMap<&'a str, u32> {
-        &self.index
+    #[inline]
+    pub fn get(&self, key: &str) -> Option<u32> {
+        self.index.get(key).copied()
+    }
+}
+
+impl<'a> std::ops::Index<&str> for Index<'a> {
+    type Output = u32;
+
+    #[inline]
+    fn index(&self, index: &str) -> &Self::Output {
+        &self.index[index]
     }
 }
 
@@ -15,7 +25,6 @@ impl<'a> From<&'a Dict> for Index<'a> {
     fn from(dict: &'a Dict) -> Self {
         Index {
             index: dict
-                .words()
                 .iter()
                 .enumerate()
                 .map(|(i, s)| (s.as_str(), i as u32))

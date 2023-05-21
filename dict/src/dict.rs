@@ -1,6 +1,7 @@
 use std::iter::zip;
 use std::ops::Index;
 use std::path::Path;
+use std::slice::Iter;
 
 pub struct Dict {
     words: Vec<String>,
@@ -8,20 +9,23 @@ pub struct Dict {
 }
 
 impl Dict {
-    pub fn words(&self) -> &Vec<String> {
-        &self.words
-    }
-
+    #[inline]
     pub fn word_len(&self) -> usize {
         self.word_len
     }
 
+    #[inline]
+    pub fn iter(&self) -> Iter<'_, String> {
+        self.words.iter()
+    }
+
     pub fn heuristic(&self, end: impl AsRef<str>, n: u32) -> usize {
-        zip(end.as_ref().chars(), self.words[n as usize].chars())
+        zip(end.as_ref().chars(), self[n].chars())
             .filter(|(ch1, ch2)| ch1 != ch2)
             .count()
     }
 
+    #[inline]
     pub fn create_from_file(dict: impl AsRef<Path>) -> Self {
         Self::create(std::fs::read_to_string(dict).unwrap())
     }
@@ -47,6 +51,7 @@ impl Dict {
 }
 
 impl Default for Dict {
+    #[inline]
     fn default() -> Self {
         Self::create(include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
@@ -55,18 +60,11 @@ impl Default for Dict {
     }
 }
 
-impl Index<u32> for &Dict {
-    type Output = str;
-
-    fn index(&self, index: u32) -> &Self::Output {
-        self.words()[index as usize].as_str()
-    }
-}
-
 impl Index<u32> for Dict {
     type Output = str;
 
+    #[inline]
     fn index(&self, index: u32) -> &Self::Output {
-        self.words()[index as usize].as_str()
+        self.words[index as usize].as_str()
     }
 }
