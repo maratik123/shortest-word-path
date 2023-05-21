@@ -1,6 +1,7 @@
 [workspace]
 members = [
-    "shortest-word-path"
+    "shortest-word-path",
+    "dict"
 ]
 
 [profile.release-lto]
