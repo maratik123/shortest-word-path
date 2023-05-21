@@ -42,7 +42,7 @@ impl Dict {
 
         let word_len = word_list.lines().next().unwrap().chars().count();
 
-        let words: Vec<_> = word_list
+        let words = word_list
             .lines()
             .inspect(|s| {
                 let cnt = s.chars().count();
@@ -271,4 +271,31 @@ fn main() {
         print!("{word} ");
     }
     println!()
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{Dict, Index, Neighbours};
+
+    #[test]
+    fn a_star() {
+        let dict = Dict::default();
+        let index = Index::from(&dict);
+        let neighbours = Neighbours::from(&dict);
+
+        let way: Vec<_> = neighbours
+            .a_star(&dict, index.index["рожа"], index.index["учет"], "учет")
+            .unwrap()
+            .iter()
+            .rev()
+            .map(|&i| &dict.words[i as usize][..])
+            .collect();
+        assert_eq!(
+            way,
+            [
+                "рожа", "роза", "поза", "пора", "пара", "парс", "паюс", "плюс", "плес", "плед",
+                "след", "слет", "счет", "учет"
+            ]
+        );
+    }
 }
