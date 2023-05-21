@@ -134,27 +134,24 @@ impl Neighbours {
             {
                 // dict.word_len is the weight of the edge from current to neighbor
                 // tentative_g_score is the distance from start to the neighbor through current
-                if let Some(tentative_g_score) =
-                    g_score.get(&current).map(|score| score + dict.word_len)
+                let tentative_g_score = g_score[&current] + dict.word_len;
+                if g_score
+                    .get(&neighbour)
+                    .filter(|neighbour_score| &tentative_g_score >= neighbour_score)
+                    .is_none()
                 {
-                    if g_score
-                        .get(&neighbour)
-                        .filter(|neighbour_score| &tentative_g_score >= neighbour_score)
-                        .is_none()
-                    {
-                        // This path to neighbor is better than any previous one. Record it!
-                        came_from.insert(neighbour, current);
-                        g_score.insert(neighbour, tentative_g_score);
-                        if open_set_hash.insert(neighbour) {
-                            // For node n, gScore[n] + h(n) represents our current best guess
-                            // as to how cheap a path could be from start to finish if it goes
-                            // through n.
-                            open_set.push((
-                                Reverse(tentative_g_score + dict.heuristic(end, neighbour)),
-                                &dict.words[neighbour as usize][..],
-                                neighbour,
-                            ));
-                        }
+                    // This path to neighbor is better than any previous one. Record it!
+                    came_from.insert(neighbour, current);
+                    g_score.insert(neighbour, tentative_g_score);
+                    if open_set_hash.insert(neighbour) {
+                        // For node n, gScore[n] + h(n) represents our current best guess
+                        // as to how cheap a path could be from start to finish if it goes
+                        // through n.
+                        open_set.push((
+                            Reverse(tentative_g_score + dict.heuristic(end, neighbour)),
+                            &dict.words[neighbour as usize][..],
+                            neighbour,
+                        ));
                     }
                 }
             }
@@ -190,9 +187,7 @@ impl From<&Dict> for Neighbours {
                     .filter(|(ci, _)| ci != &exclude_ci)
                     .map(|(ci, ch)| bitmaps[ci].get(ch).unwrap_or(&empty_bitmap))
                     .intersection();
-                if let Some(exclude) = bitmaps[exclude_ci].get(exclude_ch) {
-                    neighbours -= exclude;
-                }
+                neighbours -= &bitmaps[exclude_ci][exclude_ch];
                 for neighbour in neighbours {
                     edges
                         .entry(wi)
@@ -222,7 +217,7 @@ fn main() {
     let index = Index::from(&dict);
     let neighbours = Neighbours::from(&dict);
 
-    if begin.is_none() || end.is_none() {
+    if begin.is_none() && end.is_none() {
         for (wi, word) in dict.words.iter().enumerate() {
             let wi = wi as u32;
             print!("{word}: ");
@@ -237,8 +232,8 @@ fn main() {
     }
 
     let (begin, end) = (
-        begin.ok_or("Begin word not defined").unwrap(),
-        end.ok_or("End word not defined").unwrap(),
+        begin.expect("Begin word not defined"),
+        end.expect("End word not defined"),
     );
     let &begin_i = index
         .index
