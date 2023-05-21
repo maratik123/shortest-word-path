@@ -201,7 +201,9 @@ impl From<&Dict> for Neighbours {
                     .map(|(ci, ch)| bitmaps[ci].get(ch).unwrap_or(&empty_bitmap))
                     .intersection()
                     .iter()
-                    .filter(|&neighbour| neighbour != wi)
+                    .filter(|&neighbour| {
+                        neighbour != wi && dict.words[neighbour as usize] != dict.words[wi as usize]
+                    })
                 {
                     edges
                         .entry(wi)
