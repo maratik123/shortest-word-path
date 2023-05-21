@@ -88,10 +88,6 @@ struct Neighbours {
 }
 
 impl Neighbours {
-    fn reconstruct_rev_path(&self, came_from: HashMap<u32, u32>, current: u32) -> Vec<u32> {
-        successors(Some(current), |current| came_from.get(current).copied()).collect()
-    }
-
     /// A* finds a path from start to goal.
     fn a_star(&self, dict: &Dict, start: u32, goal: u32) -> Result<Vec<u32>, String> {
         let end = dict.words[goal as usize].as_str();
@@ -122,7 +118,9 @@ impl Neighbours {
 
         while let Some(&(_, _, current)) = open_set.peek() {
             if current == goal {
-                return Ok(self.reconstruct_rev_path(came_from, current));
+                return Ok(
+                    successors(Some(current), |prev| came_from.get(prev).copied()).collect(),
+                );
             }
             // This operation can occur in O(Log(N)) time if openSet is a min-heap or a priority
             // queue
