@@ -194,17 +194,16 @@ impl From<&Dict> for Neighbours {
             let wi = wi as u32;
             let chars: Vec<_> = word.chars().collect();
             for exclude_ci in 0..chars.len() {
-                for neighbour in (chars
+                let mut neighbours = chars
                     .iter()
                     .enumerate()
                     .filter(|(ci, _)| ci != &exclude_ci)
                     .map(|(ci, ch)| bitmaps[ci].get(ch).unwrap_or(&empty_bitmap))
-                    .intersection()
-                    - bitmaps[exclude_ci]
-                        .get(&chars[exclude_ci])
-                        .unwrap_or(&empty_bitmap))
-                .iter()
-                {
+                    .intersection();
+                neighbours -= bitmaps[exclude_ci]
+                    .get(&chars[exclude_ci])
+                    .unwrap_or(&empty_bitmap);
+                for neighbour in neighbours.iter() {
                     edges
                         .entry(wi)
                         .or_insert_with(HashSet::new)
