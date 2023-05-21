@@ -200,9 +200,9 @@ impl From<&Dict> for Neighbours {
                     .filter(|(ci, _)| ci != &exclude_ci)
                     .map(|(ci, ch)| bitmaps[ci].get(ch).unwrap_or(&empty_bitmap))
                     .intersection();
-                neighbours -= bitmaps[exclude_ci]
-                    .get(&chars[exclude_ci])
-                    .unwrap_or(&empty_bitmap);
+                if let Some(exclude) = bitmaps[exclude_ci].get(&chars[exclude_ci]) {
+                    neighbours -= exclude;
+                }
                 for neighbour in neighbours.iter() {
                     edges
                         .entry(wi)
