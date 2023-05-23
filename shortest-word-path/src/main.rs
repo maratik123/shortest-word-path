@@ -3,6 +3,7 @@ use clap::Parser;
 use dict_lib::{Dict, Index, Neighbours};
 use log::{debug, LevelFilter};
 use shortest_word_path::a_star;
+use simple_logger::SimpleLogger;
 use std::path::PathBuf;
 
 #[derive(Parser)]
@@ -32,10 +33,9 @@ fn main() {
 }
 
 fn try_main() -> Result<()> {
-    simple_logger::SimpleLogger::new()
+    SimpleLogger::new()
         .with_level(LevelFilter::Info)
         .with_colors(true)
-        .with_utc_timestamps()
         .env()
         .init()
         .context("Failed to init logger")?;
