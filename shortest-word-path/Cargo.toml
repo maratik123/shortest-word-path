@@ -8,3 +8,5 @@ rust-version = "1.69.0"
 clap.workspace = true
 dict-lib = { path = "../dict-lib" }
 anyhow.workspace = true
+log.workspace = true
+simple_logger.workspace = true

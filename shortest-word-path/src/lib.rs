@@ -1,5 +1,6 @@
 use anyhow::{bail, Result};
 use dict_lib::{Dict, Neighbours};
+use log::debug;
 use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashMap, HashSet};
 use std::iter::{successors, zip};
@@ -19,8 +20,9 @@ pub fn a_star(neighbours: &Neighbours, dict: &Dict, start: u32, goal: u32) -> Re
     // This is usually implemented as a min-heap or priority queue rather than a hash-set.
     // Sorting by our current best guess as to how cheap a path could be from start to finish
     // if it goes through n.
-    let mut open_set =
-        BinaryHeap::from([(Reverse(heuristic(dict, end, start)), &dict[start], start)]);
+    let score = heuristic(dict, end, start);
+    debug!("Saving start node to open set with score = {score}");
+    let mut open_set = BinaryHeap::from([(Reverse(score), &dict[start], start)]);
 
     // Backing min-heap with hash-map due to min-heap can not find element in O(1)
     let mut open_set_hash = HashSet::from([start]);
@@ -33,6 +35,7 @@ pub fn a_star(neighbours: &Neighbours, dict: &Dict, start: u32, goal: u32) -> Re
     let mut g_score = HashMap::from([(start, 0)]);
 
     while let Some(&(_, _, current)) = open_set.peek() {
+        debug!("Trying node {current}: '{}'", &dict[current]);
         if current == goal {
             return Ok(successors(Some(current), |prev| came_from.get(prev).copied()).collect());
         }
@@ -40,33 +43,33 @@ pub fn a_star(neighbours: &Neighbours, dict: &Dict, start: u32, goal: u32) -> Re
         // queue
         open_set.pop();
         open_set_hash.remove(&current);
-        for &neighbour in neighbours
-            .get(current)
-            .iter()
-            .flat_map(|neighbours| neighbours.iter())
-        {
-            // dict.word_len is the weight of the edge from current to neighbor
-            // tentative_g_score is the distance from start to the neighbor through current
-            let tentative_g_score = g_score[&current] + dict.word_len();
-            if g_score
-                .get(&neighbour)
-                .filter(|neighbour_score| &tentative_g_score >= neighbour_score)
-                .is_none()
-            {
-                // This path to neighbor is better than any previous one. Record it!
-                came_from.insert(neighbour, current);
-                g_score.insert(neighbour, tentative_g_score);
-                if open_set_hash.insert(neighbour) {
-                    // For node n, gScore[n] + h(n) represents our current best guess
-                    // as to how cheap a path could be from start to finish if it goes
-                    // through n.
-                    open_set.push((
-                        Reverse(tentative_g_score + heuristic(dict, end, neighbour)),
-                        &dict[neighbour],
-                        neighbour,
-                    ));
+        if let Some(neighbours) = neighbours.get(current) {
+            for &neighbour in neighbours {
+                // dict.word_len is the weight of the edge from current to neighbor
+                // tentative_g_score is the distance from start to the neighbor through current
+                let tentative_g_score = g_score[&current] + dict.word_len();
+                let stored_g_score = g_score.get(&neighbour);
+                debug!("Neighbour {neighbour}: '{}' has tentative g_score = {tentative_g_score}, stored g_score = {stored_g_score:?}", &dict[neighbour]);
+                if stored_g_score
+                    .filter(|neighbour_score| &tentative_g_score >= neighbour_score)
+                    .is_none()
+                {
+                    debug!("Tentative g_score is better than stored one");
+                    // This path to neighbor is better than any previous one. Record it!
+                    came_from.insert(neighbour, current);
+                    g_score.insert(neighbour, tentative_g_score);
+                    if open_set_hash.insert(neighbour) {
+                        // For node n, gScore[n] + h(n) represents our current best guess
+                        // as to how cheap a path could be from start to finish if it goes
+                        // through n.
+                        let score = tentative_g_score + heuristic(dict, end, neighbour);
+                        debug!("Saving neighbour node to open set with score = {score}");
+                        open_set.push((Reverse(score), &dict[neighbour], neighbour));
+                    }
                 }
             }
+        } else {
+            debug!("Node {current}: '{}' has none neighbours", &dict[current]);
         }
     }
 
