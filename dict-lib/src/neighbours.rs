@@ -1,5 +1,6 @@
-use crate::Dict;
+use crate::{maratik, Dict};
 use roaring::{MultiOps, RoaringBitmap};
+use std::collections::hash_map::Iter;
 use std::collections::{HashMap, HashSet};
 
 pub struct Neighbours {
@@ -10,6 +11,21 @@ impl Neighbours {
     #[inline]
     pub fn get(&self, key: u32) -> Option<&HashSet<u32>> {
         self.edges.get(&key)
+    }
+
+    #[inline]
+    pub fn iter(&self) -> Iter<'_, u32, HashSet<u32>> {
+        self.edges.iter()
+    }
+
+    pub(crate) fn create_from_proto(neighbours: maratik::shortest_word_path::Neighbours) -> Self {
+        Self {
+            edges: neighbours
+                .edges
+                .into_iter()
+                .map(|(k, v)| (k, v.edges.into_iter().collect()))
+                .collect(),
+        }
     }
 }
 

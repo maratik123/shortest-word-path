@@ -1,7 +1,8 @@
 [workspace]
 members = [
     "shortest-word-path",
-    "dict"
+    "dict",
+    "dict-lib"
 ]
 
 [profile.release-lto]
@@ -11,3 +12,8 @@ lto = true
 [workspace.dependencies]
 clap = { version = "4", features = [ "derive" ] }
 roaring = "0.10"
+prost = "0.11"
+prost-build = "0.11"
+zstd = "0.12"
+anyhow = "1"
+itertools = "0.10"

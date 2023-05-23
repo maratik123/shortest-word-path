@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package maratik.shortest_word_path;
+
+message Dict {
+  uint64 word_len = 1;
+  repeated string words = 2;
+}
+
+message Neighbours {
+  message Edges {
+    repeated uint32 edges = 1;
+  }
+
+  map<uint32, Edges> edges = 1;
+}
+
+message All {
+  Dict dict = 1;
+  Neighbours neighbours = 2;
+}

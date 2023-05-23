@@ -1,4 +1,5 @@
-use dict::{Dict, Neighbours};
+use anyhow::{bail, Result};
+use dict_lib::{Dict, Neighbours};
 use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashMap, HashSet};
 use std::iter::{successors, zip};
@@ -10,12 +11,7 @@ fn heuristic(dict: &Dict, end: impl AsRef<str>, n: u32) -> usize {
 }
 
 /// A* finds a path from start to goal.
-pub fn a_star(
-    neighbours: &Neighbours,
-    dict: &Dict,
-    start: u32,
-    goal: u32,
-) -> Result<Vec<u32>, String> {
+pub fn a_star(neighbours: &Neighbours, dict: &Dict, start: u32, goal: u32) -> Result<Vec<u32>> {
     let end = &dict[goal];
 
     // The set of discovered nodes that may need to be (re-)expanded.
@@ -75,17 +71,17 @@ pub fn a_star(
     }
 
     // Open set is empty but goal was never reached
-    Err("Path not found".to_string())
+    bail!("Path not found");
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use dict::Index;
+    use dict_lib::Index;
 
     #[test]
     fn a_star() {
-        let dict = Dict::default();
+        let dict = Dict::create_default().unwrap();
         let index = Index::from(&dict);
         let neighbours = Neighbours::from(&dict);
 

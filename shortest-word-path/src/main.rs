@@ -1,5 +1,6 @@
+use anyhow::{Context, Result};
 use clap::Parser;
-use dict::{Dict, Index, Neighbours};
+use dict_lib::{Dict, Index, Neighbours};
 use shortest_word_path::a_star;
 use std::path::PathBuf;
 
@@ -20,14 +21,25 @@ struct Cli {
 }
 
 fn main() {
+    if let Err(err) = try_main() {
+        eprintln!("ERROR: {}", err);
+        err.chain()
+            .skip(1)
+            .for_each(|cause| eprintln!("because: {}", cause));
+        std::process::exit(1);
+    }
+}
+
+fn try_main() -> Result<()> {
     let cli = Cli::parse();
     let (begin, end) = (cli.word_begin, cli.word_end);
 
     let dict = if let Some(dict) = cli.dict {
-        Dict::create_from_file(dict)
+        Dict::create_from_file(&dict)
+            .with_context(|| format!("Can not create dict from file '{}'", dict.display()))
     } else {
-        Dict::default()
-    };
+        Dict::create_default().context("Can not create default dict")
+    }?;
     let index = Index::from(&dict);
     let neighbours = Neighbours::from(&dict);
 
@@ -42,29 +54,28 @@ fn main() {
             }
             println!();
         }
-        return;
+        return Ok(());
     }
 
     let (begin, end) = (
-        begin.expect("Begin word not defined"),
-        end.expect("End word not defined"),
+        begin.context("Begin word not defined")?,
+        end.context("End word not defined")?,
     );
     let begin_i = index
         .get(&begin[..])
-        .ok_or_else(|| format!("Can not found begin word: {begin}"))
-        .unwrap();
+        .with_context(|| format!("Can not found begin word: {begin}"))?;
     let end_i = index
         .get(&end[..])
-        .ok_or_else(|| format!("Can not found end word: {end}"))
-        .unwrap();
+        .with_context(|| format!("Can not found end word: {end}"))?;
 
     for word in a_star(&neighbours, &dict, begin_i, end_i)
-        .unwrap()
+        .with_context(|| format!("Path from '{begin}' to '{end}' does not exist"))?
         .into_iter()
         .rev()
         .map(|i| &dict[i])
     {
         print!("{word} ");
     }
-    println!()
+    println!();
+    Ok(())
 }

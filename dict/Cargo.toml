@@ -6,4 +6,4 @@ rust-version = "1.69.0"
 
 [dependencies]
 clap.workspace = true
-roaring.workspace = true
+dict-lib = { path = "../dict-lib" }
