@@ -40,7 +40,13 @@ fn try_main() -> Result<()> {
         .init()
         .context("Failed to init logger")?;
 
-    let cli = Cli::parse();
+    let cli = match Cli::try_parse() {
+        Err(err) if !err.use_stderr() => {
+            err.print()?;
+            return Ok(());
+        }
+        cli => cli?,
+    };
     let (begin, end) = (cli.word_begin, cli.word_end);
 
     let dict = if let Some(dict) = cli.dict {
