@@ -1,7 +1,7 @@
 use anyhow::{bail, Result};
 use dict_lib::{Dict, Neighbours};
 use log::Level::Debug;
-use log::{debug, error, info, log_enabled};
+use log::{debug, error, info, log_enabled, trace};
 use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashMap, HashSet};
 use std::iter::{successors, zip};
@@ -28,7 +28,7 @@ pub fn a_star(neighbours: &Neighbours, dict: &Dict, start: u32, goal: u32) -> Re
     // if it goes through n.
     let score = heuristic(dict, end, start);
     debug!("Saving start node to open set with score = {score}");
-    let mut open_set = BinaryHeap::from([(Reverse(score), &dict[start], start)]);
+    let mut open_set = BinaryHeap::from([(Reverse((score, score)), &dict[start], start)]);
 
     // Backing min-heap with hash-map due to min-heap can not find element in O(1)
     let mut open_set_hash = HashSet::from([start]);
@@ -67,7 +67,7 @@ pub fn a_star(neighbours: &Neighbours, dict: &Dict, start: u32, goal: u32) -> Re
                 let stored_g_score = came_from_with_g_score
                     .get(&neighbour)
                     .map(|came_from_with_g_score_entry| came_from_with_g_score_entry.g_score);
-                debug!("Neighbour {neighbour}: '{}' has tentative g_score = {tentative_g_score}, stored g_score = {stored_g_score:?}", &dict[neighbour]);
+                trace!("Neighbour {neighbour}: '{}' has tentative g_score = {tentative_g_score}, stored g_score = {stored_g_score:?}", &dict[neighbour]);
                 if stored_g_score
                     .filter(|neighbour_score| &tentative_g_score >= neighbour_score)
                     .is_none()
@@ -75,13 +75,15 @@ pub fn a_star(neighbours: &Neighbours, dict: &Dict, start: u32, goal: u32) -> Re
                     if log_enabled!(Debug) {
                         if let Some(stored_g_score) = stored_g_score {
                             debug!(
-                            "({}). Tentative g_score is better than stored one: {stored_g_score}",
-                            came_from_with_g_score.len()
-                        );
+                                "({}). Neighbour '{}': Tentative g_score {tentative_g_score} is better than stored one {stored_g_score}",
+                                came_from_with_g_score.len(),
+                                &dict[neighbour]
+                            );
                         } else {
                             debug!(
-                                "({}). Tentative g_score is better than stored one",
-                                came_from_with_g_score.len()
+                                "({}). Neighbour '{}': Store tentative g_score {tentative_g_score}",
+                                came_from_with_g_score.len(),
+                                &dict[neighbour]
                             );
                         }
                     }
@@ -97,12 +99,13 @@ pub fn a_star(neighbours: &Neighbours, dict: &Dict, start: u32, goal: u32) -> Re
                         // For node n, gScore[n] + h(n) represents our current best guess
                         // as to how cheap a path could be from start to finish if it goes
                         // through n.
-                        let score = tentative_g_score + heuristic(dict, end, neighbour);
+                        let heuristic = heuristic(dict, end, neighbour);
+                        let score = tentative_g_score + heuristic;
                         debug!(
-                            "({}). Saving neighbour node to open set with score = {score}",
+                            "({}). Saving neighbour node to open set with score = ({score}, {heuristic})",
                             open_set.len()
                         );
-                        open_set.push((Reverse(score), &dict[neighbour], neighbour));
+                        open_set.push((Reverse((score, heuristic)), &dict[neighbour], neighbour));
                     }
                 }
             }

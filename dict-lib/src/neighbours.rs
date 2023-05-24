@@ -48,28 +48,29 @@ impl TryFrom<&Dict> for Neighbours {
             }
         }
 
-        let empty_bitmap = RoaringBitmap::new();
         let mut edges = HashMap::new();
         for (wi, word) in dict.iter().enumerate() {
             let wi = wi as _;
             let chars: Vec<_> = word.chars().collect();
             for (exclude_ci, exclude_ch) in chars.iter().enumerate() {
-                let mut neighbours = chars
+                if let Ok(mut neighbours) = chars
                     .iter()
                     .enumerate()
                     .filter(|(ci, _)| ci != &exclude_ci)
-                    .map(|(ci, ch)| bitmaps[ci].get(ch).unwrap_or(&empty_bitmap))
-                    .intersection();
-                neighbours -= &bitmaps[exclude_ci][exclude_ch];
-                for neighbour in neighbours {
-                    edges
-                        .entry(wi)
-                        .or_insert_with(HashSet::new)
-                        .insert(neighbour);
-                    edges
-                        .entry(neighbour)
-                        .or_insert_with(HashSet::new)
-                        .insert(wi);
+                    .map(|(ci, ch)| bitmaps[ci].get(ch).ok_or(()))
+                    .intersection()
+                {
+                    neighbours -= &bitmaps[exclude_ci][exclude_ch];
+                    for neighbour in neighbours {
+                        edges
+                            .entry(wi)
+                            .or_insert_with(HashSet::new)
+                            .insert(neighbour);
+                        edges
+                            .entry(neighbour)
+                            .or_insert_with(HashSet::new)
+                            .insert(wi);
+                    }
                 }
             }
         }

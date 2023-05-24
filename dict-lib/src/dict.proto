@@ -3,7 +3,7 @@ syntax = "proto3";
 package maratik.shortest_word_path;
 
 message Dict {
-  repeated string words = 2;
+  repeated string words = 1;
 }
 
 message Neighbours {
