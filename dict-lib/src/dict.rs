@@ -1,5 +1,4 @@
-use crate::maratik;
-use anyhow::{bail, Context, Result};
+use anyhow::{bail, Context, Error, Result};
 use itertools::Itertools;
 use std::ops::Index;
 use std::path::Path;
@@ -7,13 +6,12 @@ use std::slice::Iter;
 
 pub struct Dict {
     words: Vec<String>,
-    word_len: usize,
 }
 
 impl Dict {
     #[inline]
-    pub fn word_len(&self) -> usize {
-        self.word_len
+    pub(crate) fn create(words: Vec<String>) -> Self {
+        Self { words }
     }
 
     #[inline]
@@ -22,33 +20,54 @@ impl Dict {
     }
 
     #[inline]
+    pub(crate) fn desctructure(self) -> Vec<String> {
+        self.words
+    }
+
+    #[inline]
     pub fn create_default() -> Result<Self> {
-        Self::create(include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/../dict/dict.txt"
-        )))
+        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../dict/dict.txt"))
+            .try_into()
+            .context("Can not create default dict")
     }
 
     #[inline]
     pub fn create_from_file(dict: impl AsRef<Path>) -> Result<Self> {
         let dict = dict.as_ref();
-        Self::create(
-            std::fs::read_to_string(dict)
-                .with_context(|| format!("Failed to read file '{}'", dict.display()))?,
-        )
+        std::fs::read_to_string(dict)
+            .with_context(|| format!("Failed to read file '{}'", dict.display()))?
+            .try_into()
+            .with_context(|| format!("Can not create dict from file '{}'", dict.display()))
     }
+}
+
+impl TryFrom<String> for Dict {
+    type Error = Error;
 
     #[inline]
-    pub(crate) fn create_from_proto(dict: maratik::shortest_word_path::Dict) -> Self {
-        Self {
-            words: dict.words,
-            word_len: dict.word_len as usize,
-        }
+    fn try_from(word_list: String) -> Result<Self> {
+        (&word_list)
+            .try_into()
+            .context("Can not create dict from string")
     }
+}
 
-    pub fn create(word_list: impl AsRef<str>) -> Result<Self> {
-        let word_list = word_list.as_ref();
+impl TryFrom<&String> for Dict {
+    type Error = Error;
 
+    #[inline]
+    fn try_from(word_list: &String) -> Result<Self> {
+        word_list
+            .as_str()
+            .try_into()
+            .context("Can not create dict from &String")
+    }
+}
+
+impl TryFrom<&str> for Dict {
+    type Error = Error;
+
+    fn try_from(word_list: &str) -> Result<Self> {
         let word_len = word_list
             .lines()
             .next()
@@ -68,7 +87,7 @@ impl Dict {
             .try_collect()
             .context("Can not collect word list")?;
 
-        Ok(Dict { words, word_len })
+        Ok(Dict { words })
     }
 }
 

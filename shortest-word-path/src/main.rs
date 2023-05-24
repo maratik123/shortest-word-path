@@ -34,7 +34,7 @@ fn main() {
 
 fn try_main() -> Result<()> {
     SimpleLogger::new()
-        .with_level(LevelFilter::Info)
+        .with_level(LevelFilter::Error)
         .with_colors(true)
         .env()
         .init()
@@ -42,10 +42,10 @@ fn try_main() -> Result<()> {
 
     let cli = match Cli::try_parse() {
         Err(err) if !err.use_stderr() => {
-            err.print()?;
+            err.print().context("Can not print help")?;
             return Ok(());
         }
-        cli => cli?,
+        cli => cli.context("Error on parsing params")?,
     };
     let (begin, end) = (cli.word_begin, cli.word_end);
 
@@ -56,14 +56,13 @@ fn try_main() -> Result<()> {
         Dict::create_default().context("Can not create default dict")
     }?;
     let index = Index::from(&dict);
-    let neighbours = Neighbours::from(&dict);
+    let neighbours = Neighbours::try_from(&dict).context("Can not create neighbours map")?;
 
     if begin.is_none() && end.is_none() {
         debug!("No words defined, dump dict");
         for (wi, word) in dict.iter().enumerate() {
-            let wi = wi as u32;
             print!("{word}: ");
-            if let Some(neighbours_i) = neighbours.get(wi) {
+            if let Some(neighbours_i) = neighbours.get(wi as _) {
                 for &neighbour_i in neighbours_i {
                     print!("{} ", &dict[neighbour_i]);
                 }

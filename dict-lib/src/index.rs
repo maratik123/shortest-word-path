@@ -27,7 +27,7 @@ impl<'a> From<&'a Dict> for Index<'a> {
             index: dict
                 .iter()
                 .enumerate()
-                .map(|(i, s)| (s.as_str(), i as u32))
+                .map(|(i, s)| (s.as_str(), i as _))
                 .collect(),
         }
     }

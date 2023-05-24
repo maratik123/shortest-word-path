@@ -1,6 +1,7 @@
 use anyhow::{bail, Result};
 use dict_lib::{Dict, Neighbours};
-use log::debug;
+use log::Level::Debug;
+use log::{debug, error, info, log_enabled};
 use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashMap, HashSet};
 use std::iter::{successors, zip};
@@ -9,6 +10,11 @@ fn heuristic(dict: &Dict, end: impl AsRef<str>, n: u32) -> usize {
     zip(end.as_ref().chars(), dict[n].chars())
         .filter(|(ch1, ch2)| ch1 != ch2)
         .count()
+}
+
+struct CameFromWithGScoreEntry {
+    came_from: Option<u32>,
+    g_score: usize,
 }
 
 /// A* finds a path from start to goal.
@@ -29,15 +35,25 @@ pub fn a_star(neighbours: &Neighbours, dict: &Dict, start: u32, goal: u32) -> Re
 
     // For node n, cameFrom[n] is the node immediately preceding it on the cheapest path from
     // the start to n currently known.
-    let mut came_from = HashMap::new();
-
     // For node n, gScore[n] is the cost of the cheapest path from start to n currently known.
-    let mut g_score = HashMap::from([(start, 0)]);
+    let mut came_from_with_g_score = HashMap::from([(
+        start,
+        CameFromWithGScoreEntry {
+            came_from: None,
+            g_score: 0,
+        },
+    )]);
 
     while let Some(&(_, _, current)) = open_set.peek() {
         debug!("Trying node {current}: '{}'", &dict[current]);
         if current == goal {
-            return Ok(successors(Some(current), |prev| came_from.get(prev).copied()).collect());
+            info!("Found!");
+            return Ok(successors(Some(current), |prev| {
+                came_from_with_g_score
+                    .get(prev)
+                    .and_then(|came_from_with_g_score_entry| came_from_with_g_score_entry.came_from)
+            })
+            .collect());
         }
         // This operation can occur in O(Log(N)) time if openSet is a min-heap or a priority
         // queue
@@ -47,23 +63,45 @@ pub fn a_star(neighbours: &Neighbours, dict: &Dict, start: u32, goal: u32) -> Re
             for &neighbour in neighbours {
                 // dict.word_len is the weight of the edge from current to neighbor
                 // tentative_g_score is the distance from start to the neighbor through current
-                let tentative_g_score = g_score[&current] + dict.word_len();
-                let stored_g_score = g_score.get(&neighbour);
+                let tentative_g_score = came_from_with_g_score[&current].g_score + 1;
+                let stored_g_score = came_from_with_g_score
+                    .get(&neighbour)
+                    .map(|came_from_with_g_score_entry| came_from_with_g_score_entry.g_score);
                 debug!("Neighbour {neighbour}: '{}' has tentative g_score = {tentative_g_score}, stored g_score = {stored_g_score:?}", &dict[neighbour]);
                 if stored_g_score
                     .filter(|neighbour_score| &tentative_g_score >= neighbour_score)
                     .is_none()
                 {
-                    debug!("Tentative g_score is better than stored one");
+                    if log_enabled!(Debug) {
+                        if let Some(stored_g_score) = stored_g_score {
+                            debug!(
+                            "({}). Tentative g_score is better than stored one: {stored_g_score}",
+                            came_from_with_g_score.len()
+                        );
+                        } else {
+                            debug!(
+                                "({}). Tentative g_score is better than stored one",
+                                came_from_with_g_score.len()
+                            );
+                        }
+                    }
                     // This path to neighbor is better than any previous one. Record it!
-                    came_from.insert(neighbour, current);
-                    g_score.insert(neighbour, tentative_g_score);
+                    came_from_with_g_score.insert(
+                        neighbour,
+                        CameFromWithGScoreEntry {
+                            came_from: Some(current),
+                            g_score: tentative_g_score,
+                        },
+                    );
                     if open_set_hash.insert(neighbour) {
                         // For node n, gScore[n] + h(n) represents our current best guess
                         // as to how cheap a path could be from start to finish if it goes
                         // through n.
                         let score = tentative_g_score + heuristic(dict, end, neighbour);
-                        debug!("Saving neighbour node to open set with score = {score}");
+                        debug!(
+                            "({}). Saving neighbour node to open set with score = {score}",
+                            open_set.len()
+                        );
                         open_set.push((Reverse(score), &dict[neighbour], neighbour));
                     }
                 }
@@ -73,6 +111,7 @@ pub fn a_star(neighbours: &Neighbours, dict: &Dict, start: u32, goal: u32) -> Re
         }
     }
 
+    error!("Not found!");
     // Open set is empty but goal was never reached
     bail!("Path not found");
 }
@@ -86,7 +125,7 @@ mod tests {
     fn a_star() {
         let dict = Dict::create_default().unwrap();
         let index = Index::from(&dict);
-        let neighbours = Neighbours::from(&dict);
+        let neighbours = Neighbours::try_from(&dict).unwrap();
 
         let way: Vec<_> = super::a_star(&neighbours, &dict, index["рожа"], index["учет"])
             .unwrap()

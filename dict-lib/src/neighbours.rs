@@ -1,4 +1,5 @@
-use crate::{maratik, Dict};
+use crate::Dict;
+use anyhow::{Context, Error, Result};
 use roaring::{MultiOps, RoaringBitmap};
 use std::collections::hash_map::Iter;
 use std::collections::{HashMap, HashSet};
@@ -9,6 +10,16 @@ pub struct Neighbours {
 
 impl Neighbours {
     #[inline]
+    pub(crate) fn create(edges: HashMap<u32, HashSet<u32>>) -> Self {
+        Self { edges }
+    }
+
+    #[inline]
+    pub(crate) fn destructure(self) -> HashMap<u32, HashSet<u32>> {
+        self.edges
+    }
+
+    #[inline]
     pub fn get(&self, key: u32) -> Option<&HashSet<u32>> {
         self.edges.get(&key)
     }
@@ -17,23 +28,18 @@ impl Neighbours {
     pub fn iter(&self) -> Iter<'_, u32, HashSet<u32>> {
         self.edges.iter()
     }
-
-    pub(crate) fn create_from_proto(neighbours: maratik::shortest_word_path::Neighbours) -> Self {
-        Self {
-            edges: neighbours
-                .edges
-                .into_iter()
-                .map(|(k, v)| (k, v.edges.into_iter().collect()))
-                .collect(),
-        }
-    }
 }
 
-impl From<&Dict> for Neighbours {
-    fn from(dict: &Dict) -> Self {
-        let mut bitmaps = vec![HashMap::with_capacity(32); dict.word_len()];
+impl TryFrom<&Dict> for Neighbours {
+    type Error = Error;
+
+    fn try_from(dict: &Dict) -> Result<Self> {
+        let mut bitmaps = vec![
+            HashMap::with_capacity(32);
+            dict.iter().next().context("Empty dict")?.chars().count()
+        ];
         for (wi, word) in dict.iter().enumerate() {
-            let wi = wi as u32;
+            let wi = wi as _;
             for (ci, ch) in word.chars().enumerate() {
                 bitmaps[ci]
                     .entry(ch)
@@ -45,7 +51,7 @@ impl From<&Dict> for Neighbours {
         let empty_bitmap = RoaringBitmap::new();
         let mut edges = HashMap::new();
         for (wi, word) in dict.iter().enumerate() {
-            let wi = wi as u32;
+            let wi = wi as _;
             let chars: Vec<_> = word.chars().collect();
             for (exclude_ci, exclude_ch) in chars.iter().enumerate() {
                 let mut neighbours = chars
@@ -68,6 +74,6 @@ impl From<&Dict> for Neighbours {
             }
         }
 
-        Self { edges }
+        Ok(Self { edges })
     }
 }

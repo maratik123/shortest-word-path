@@ -3,7 +3,6 @@ syntax = "proto3";
 package maratik.shortest_word_path;
 
 message Dict {
-  uint64 word_len = 1;
   repeated string words = 2;
 }
 
